@@ -28,36 +28,41 @@ module tb_transpose ();
 
     always #5 clk = ~clk;
 
-    task send_word(input logic [31:0] data_word);
+    task automatic send_word(input logic [31:0] data_word);
+        wait(mif.ready == 1'b1);
+        @(posedge clk);
+        
         mif.data  = data_word;
         mif.valid = 1'b1;
-        do begin
-            @(posedge clk);
-        end while (!mif.ready);
+        
+        @(posedge clk);
         mif.valid = 1'b0;
-        mif.data  = '0;
+        mif.data  = 'x;
     endtask
 
-    task test_transpose(
+    task automatic test_transpose(
         input logic [31:0] Matrix [], 
         input int          rows,
         input int          cols,
         input string       test_name
     );
-        int total_elements = rows * cols;
-        int errors = 0;
+        int total_elements;
+        int errors;
         int expected_ridx;
         int expected_cidx;
+        
+        total_elements = rows * cols;
+        errors = 0;
 
         $display("Starting Test: %s (%0dx%0d Matrix)", test_name, rows, cols);
 
+        wait(mif.ready == 1'b1);
+        @(posedge clk);
         mif.rsize = rows;
         mif.csize = cols;
         mif.valid = 1'b1;
         
-        do begin
-            @(posedge clk);
-        end while (!mif.ready);
+        @(posedge clk);
         mif.valid = 1'b0;
 
         for (int i = 0; i < total_elements; i++) begin
@@ -67,7 +72,6 @@ module tb_transpose ();
                 @(posedge clk);
             end while (!trans_valid);
 
-            // Mathematical check for transposition indices
             expected_ridx = i % cols;
             expected_cidx = i / cols;
 
@@ -109,19 +113,8 @@ module tb_transpose ();
         nRst = 1;
         #20;
 
-        // Test 1: Asymmetrical Matrix
-        test_transpose(
-            '{1, 2, 3, 4, 5, 6}, // 2x3 matrix
-            2, 3, 
-            "2x3 Matrix Transposition"
-        );
-
-        // Test 2: Symmetrical Matrix
-        test_transpose(
-            '{10, 20, 30, 40}, // 2x2 matrix
-            2, 2, 
-            "2x2 Matrix Transposition"
-        );
+        test_transpose('{1, 2, 3, 4, 5, 6}, 2, 3, "2x3 Matrix Transposition");
+        test_transpose('{10, 20, 30, 40}, 2, 2, "2x2 Matrix Transposition");
 
         $display("All tests completed.");
         $finish;

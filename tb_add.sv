@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 
-module tb_addition ();
+module tb_add ();
 
     logic clk;
     logic nRst;
@@ -23,19 +23,19 @@ module tb_addition ();
 
     always #5 clk = ~clk;
 
-    task send_word(input logic [31:0] data_word);
+    task automatic send_word(input logic [31:0] data_word);
+        wait(mif.ready == 1'b1);
+        @(posedge clk);
+        
         mif.data  = data_word;
         mif.valid = 1'b1;
         
-        do begin
-            @(posedge clk);
-        end while (!mif.ready);
-        
+        @(posedge clk);
         mif.valid = 1'b0;
-        mif.data  = '0;
+        mif.data  = 'x;
     endtask
 
-    task test_matrix_add(
+    task automatic test_matrix_add(
         input logic [31:0] A [], 
         input logic [31:0] B [], 
         input logic [31:0] Expected [],
@@ -43,21 +43,25 @@ module tb_addition ();
         input int          cols,
         input string       test_name
     );
-        int total_elements = rows * cols;
-        int errors = 0;
+        int total_elements;
+        int errors;
+        
+        total_elements = rows * cols;
+        errors = 0;
 
         $display("Starting Test: %s (%0dx%0d Matrix)", test_name, rows, cols);
 
+        wait(mif.ready == 1'b1);
+        @(posedge clk);
         mif.rsize = rows;
         mif.csize = cols;
         mif.valid = 1'b1;
-        do begin
-            @(posedge clk);
-        end while (!mif.ready);
+        
+        @(posedge clk);
         mif.valid = 1'b0;
 
         for (int i = 0; i < total_elements; i++) begin
-            send_word(A[i]); 
+            send_word(A[i]);
             send_word(B[i]); 
 
             do begin
@@ -101,29 +105,9 @@ module tb_addition ();
         nRst = 1;
         #20;
 
-        test_matrix_add(
-            '{1, 2, 3, 4}, 
-            '{5, 6, 7, 8}, 
-            '{6, 8, 10, 12}, 
-            2, 2, 
-            "2x2 Matrix Addition"
-        );
-
-        test_matrix_add(
-            '{10, 20, 30}, 
-            '{15, 25, 35}, 
-            '{25, 45, 65}, 
-            1, 3, 
-            "1x3 Vector Addition"
-        );
-
-        test_matrix_add(
-            '{1, 0, 0, 0, 1, 0, 0, 0, 1}, 
-            '{0, 0, 0, 0, 0, 0, 0, 0, 0}, 
-            '{1, 0, 0, 0, 1, 0, 0, 0, 1}, 
-            3, 3, 
-            "3x3 Identity + Zero Matrix"
-        );
+        test_matrix_add('{1, 2, 3, 4}, '{5, 6, 7, 8}, '{6, 8, 10, 12}, 2, 2, "2x2 Matrix Addition");
+        test_matrix_add('{10, 20, 30}, '{15, 25, 35}, '{25, 45, 65}, 1, 3, "1x3 Vector Addition");
+        test_matrix_add('{1, 0, 0, 0, 1, 0, 0, 0, 1}, '{0, 0, 0, 0, 0, 0, 0, 0, 0}, '{1, 0, 0, 0, 1, 0, 0, 0, 1}, 3, 3, "3x3 Identity");
 
         $display("All tests completed.");
         $finish;

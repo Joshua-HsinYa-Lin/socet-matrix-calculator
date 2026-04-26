@@ -5,12 +5,12 @@ interface matrix_if(
 	logic valid;
 	logic ready;
 	logic wen;
-	logic data [31:0] data;
-	logic data [31:0] ridx;
-	logic data [31:0] cidx;
-	logic data [31:0] rsize;
-	logic data [31:0] csize;
-
+	logic ren;
+	logic [31:0] data;
+	logic [31:0] ridx;
+	logic [31:0] cidx;
+	logic [31:0] rsize;
+	logic [31:0] csize;
 	modport controller_mp (
 		input ready,
 		output valid, wen, ren, data, ridx, cidx, rsize, csize
