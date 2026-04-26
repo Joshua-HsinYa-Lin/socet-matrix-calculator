@@ -7,7 +7,7 @@ This document outlines the user interface and operational flow for the hardware-
 * **Display:** 8-digit 7-segment display (Top) for alphanumeric prompts and numeric values.
 * **LEDs:** * 8 Left LEDs: Indicates row input progress or current row index.
     * 8 Right LEDs: Indicates column input progress or current column index.
-    * 1 Middle LED: System status indicator (Error, Ready, Processing).
+    * 1 Middle RGB LED: System status indicator (Red = Error, Green = Ready, Blue = In Progress).
 * **Keypad:** 20 keys (0-9, A-F, W-Z) for data entry, navigation, and control.
 
 ## 2. Keypad Mapping & Controls
@@ -31,7 +31,7 @@ This document outlines the user interface and operational flow for the hardware-
 1. On startup, the display prompts `ROW`.
 2. Enter the row size (1-9). Press **Y** to confirm.
 3. The display prompts `COL`. Enter the column size (1-9) and press **Y**.
-4. The middle LED turns solid ON. *(Note: Invalid dimensions will cause the middle LED to blink slowly).*
+4. The middle RGB LED turns solid Blue. *(Note: Invalid dimensions will cause the middle LED to blink Red slowly).*
 
 ### Step 2: Entering Matrix 1 Elements
 1. The display prompts the current coordinate being entered (e.g., `ROW1COL1`).
@@ -41,10 +41,10 @@ This document outlines the user interface and operational flow for the hardware-
 3. Press **Y** to store the value in memory and advance to the next coordinate.
 4. Input proceeds row by row, left to right.
 5. **LED Indicators:** The Left 8 LEDs show row progress; the Right 8 LEDs show column progress (No lights = 1, all 8 lights = completed).
-6. Once Matrix 1 is completely entered, the middle LED switches to a **fast blink**.
+6. Once Matrix 1 is completely entered, the middle RGB LED switches to a **fast blinking Green**.
 
 ### Step 3: Operation Selection
-1. With the middle LED fast blinking, select the operation:
+1. With the middle RGB LED fast blinking Green, select the operation:
     * Press **A** for Addition.
     * Press **B** for Multiplication.
     * Press **C** for Transposition.
