@@ -14,9 +14,9 @@ module main (
     localparam int KEY_W = 16, KEY_F = 15;
 
     // Memory Base Addresses 
-    localparam logic [31:0] BASE_M1  = 32'h000;
-    localparam logic [31:0] BASE_M2  = 32'h080;
-    localparam logic [31:0] BASE_OUT = 32'h100;
+    localparam [31:0] BASE_M1  = 32'h000;
+    localparam [31:0] BASE_M2  = 32'h080;
+    localparam [31:0] BASE_OUT = 32'h100;
 
     // Sub-module Interfaces & Signals
     logic [20:0] pb_pulse;
@@ -152,7 +152,7 @@ module main (
                     if (pb_pulse[KEY_Z]) input_buf <= {input_buf[7:0], 4'h0};
 
                     if (pb_pulse[KEY_Y]) begin
-                        mem_bus.addr  <= BASE_M1 + ((curr_r - 1) * m1_c) + (curr_c - 1);
+                        mem_bus.addr  <= BASE_M1 + ((32'(curr_r) - 32'd1) * 32'(m1_c)) + (32'(curr_c) - 32'd1);
                         mem_bus.wdata <= {20'd0, input_buf}; 
                         mem_bus.wen   <= 1'b1;
                         state <= S_LOAD_M1_ACK;
@@ -224,7 +224,7 @@ module main (
                     if (pb_pulse[KEY_Z]) input_buf <= {input_buf[7:0], 4'h0};
 
                     if (pb_pulse[KEY_Y]) begin
-                        mem_bus.addr  <= BASE_M2 + ((curr_r - 1) * m2_c) + (curr_c - 1);
+                        mem_bus.addr  <= BASE_M2 + ((32'(curr_r) - 32'd1) * 32'(m2_c)) + (32'(curr_c) - 32'd1);
                         mem_bus.wdata <= {20'd0, input_buf};
                         mem_bus.wen   <= 1'b1;
                         state <= S_LOAD_M2_ACK;
@@ -281,7 +281,7 @@ module main (
                     if ((op_type == 1 && add_if.ready) || (op_type == 2 && vec_if.ready) || (op_type == 3 && tra_if.ready)) begin
                         mem_bus.ren <= 1'b1;
                         if (op_type == 1 || op_type == 3) mem_bus.addr <= BASE_M1 + calc_i;
-                        else if (op_type == 2) mem_bus.addr <= BASE_M1 + (calc_i * m1_c) + calc_k;
+                        else if (op_type == 2) mem_bus.addr <= BASE_M1 + (calc_i * 32'(m1_c)) + calc_k;
                         state <= S_CALC_WAIT_A;
                     end
                 end
@@ -306,7 +306,7 @@ module main (
                     if ((op_type == 1 && add_if.ready) || (op_type == 2 && vec_if.ready)) begin
                         mem_bus.ren <= 1'b1;
                         if (op_type == 1) mem_bus.addr <= BASE_M2 + calc_i;
-                        else if (op_type == 2) mem_bus.addr <= BASE_M2 + (calc_k * m2_c) + calc_j;
+                        else if (op_type == 2) mem_bus.addr <= BASE_M2 + (calc_k * 32'(m2_c)) + calc_j;
                         state <= S_CALC_WAIT_B;
                     end
                 end
@@ -323,7 +323,7 @@ module main (
                 S_CALC_PULSE_B: begin
                     add_if.valid <= 1'b0; vec_if.valid <= 1'b0;
                     if (op_type == 2) begin
-                        if (calc_k + 1 == m1_c) state <= S_CALC_WAIT_RES;
+                        if (calc_k + 32'd1 == 32'(m1_c)) state <= S_CALC_WAIT_RES;
                         else begin calc_k <= calc_k + 1; state <= S_CALC_FETCH_A; end
                     end else state <= S_CALC_WAIT_RES;
                 end
@@ -336,14 +336,14 @@ module main (
                         state <= S_CALC_WRITE_RES;
                     end
                     else if (op_type == 2 && vec_done) begin
-                        mem_bus.wdata <= vec_product[31:0]; // Cast 64-bit to 32-bit
-                        mem_bus.addr <= BASE_OUT + (calc_i * out_c) + calc_j;
+                        mem_bus.wdata <= vec_product[31:0];
+                        mem_bus.addr <= BASE_OUT + (calc_i * 32'(out_c)) + calc_j;
                         mem_bus.wen <= 1'b1;
                         state <= S_CALC_WRITE_RES;
                     end
                     else if (op_type == 3 && trans_valid) begin
                         mem_bus.wdata <= trans_out;
-                        mem_bus.addr <= BASE_OUT + (dest_ridx * out_c) + dest_cidx;
+                        mem_bus.addr <= BASE_OUT + (dest_ridx * 32'(out_c)) + dest_cidx;
                         mem_bus.wen <= 1'b1; trans_ready <= 1'b1;
                         state <= S_CALC_WRITE_RES;
                     end
@@ -355,13 +355,13 @@ module main (
                         mem_bus.wen <= 1'b0;
                         
                         if (op_type == 1 || op_type == 3) begin
-                            if (calc_i + 1 == (m1_r * m1_c)) state <= S_CALC_DONE_WAIT; 
+                            if (calc_i + 32'd1 == (32'(m1_r) * 32'(m1_c))) state <= S_CALC_DONE_WAIT; 
                             else begin calc_i <= calc_i + 1; state <= S_CALC_FETCH_A; end
                         end
                         else if (op_type == 2) begin
-                            if (calc_j + 1 == m2_c) begin
+                            if (calc_j + 32'd1 == 32'(m2_c)) begin
                                 calc_j <= 0;
-                                if (calc_i + 1 == m1_r) state <= S_CALC_DONE_WAIT;
+                                if (calc_i + 32'd1 == 32'(m1_r)) state <= S_CALC_DONE_WAIT;
                                 else begin calc_i <= calc_i + 1; calc_k <= 0; state <= S_CALC_START; end
                             end else begin
                                 calc_j <= calc_j + 1; calc_k <= 0; state <= S_CALC_START;
@@ -386,7 +386,7 @@ module main (
 
                 S_OUT_FETCH: begin
                     sys_state <= 3'd4; prompt_type <= 3'd0; // Data output mode
-                    mem_bus.addr <= BASE_OUT + ((curr_r - 1) * out_c) + (curr_c - 1);
+                    mem_bus.addr <= BASE_OUT + ((32'(curr_r) - 32'd1) * 32'(out_c)) + (32'(curr_c) - 32'd1);
                     mem_bus.ren  <= 1'b1;
                     state <= S_OUT_FETCH_ACK;
                 end
@@ -405,6 +405,8 @@ module main (
                     if (pb_pulse[KEY_A] && curr_c > 1)     begin curr_c <= curr_c - 1; state <= S_OUT_FETCH; end
                     if (pb_pulse[KEY_D] && curr_c < out_c) begin curr_c <= curr_c + 1; state <= S_OUT_FETCH; end
                 end
+
+                default: state <= S_INIT;
 
             endcase
         end

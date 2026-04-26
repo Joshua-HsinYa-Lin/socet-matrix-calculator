@@ -21,33 +21,33 @@ module display #(
 
     // --------------------------------------------------------
     // 7-Segment Encoding Definitions (Active High)
-    // Bit mapping: [7]Dot, [6]Mid, [5]TL, [4]BL, [3]Bot, [2]BR, [1]TR, [0]Top
     // --------------------------------------------------------
-    localparam logic [7:0] CHAR_BLANK = 8'b00000000;
-    localparam logic [7:0] CHAR_R     = 8'b01010000; // 'r'
-    localparam logic [7:0] CHAR_O     = 8'b00111111; // 'O'
-    localparam logic [7:0] CHAR_W     = 8'b00111110; // 'U' used for W
-    localparam logic [7:0] CHAR_C     = 8'b00111001; // 'C'
-    localparam logic [7:0] CHAR_L     = 8'b00111000; // 'L'
-    localparam logic [7:0] CHAR_A     = 8'b01110111; // 'A'
-    localparam logic [7:0] CHAR_D     = 8'b01011110; // 'd'
-    localparam logic [7:0] CHAR_M     = 8'b01010100; // 'n' used for M
-    localparam logic [7:0] CHAR_U     = 8'b00111110; // 'U'
-    localparam logic [7:0] CHAR_T     = 8'b01111000; // 't'
+    localparam [7:0] CHAR_BLANK = 8'b00000000;
+    localparam [7:0] CHAR_R     = 8'b01010000; 
+    localparam [7:0] CHAR_O     = 8'b00111111; 
+    localparam [7:0] CHAR_W     = 8'b00111110; 
+    localparam [7:0] CHAR_C     = 8'b00111001; 
+    localparam [7:0] CHAR_L     = 8'b00111000; 
+    localparam [7:0] CHAR_A     = 8'b01110111; 
+    localparam [7:0] CHAR_D     = 8'b01011110; 
+    localparam [7:0] CHAR_M     = 8'b01010100; 
+    localparam [7:0] CHAR_U     = 8'b00111110; 
+    localparam [7:0] CHAR_T     = 8'b01111000; 
 
-    function automatic logic [7:0] decode_bcd(input logic [3:0] bcd);
+    // Replaced 'return' with function name assignment for older Yosys compatibility
+    function [7:0] decode_bcd(input logic [3:0] bcd);
         case (bcd)
-            4'd0: return 8'b00111111;
-            4'd1: return 8'b00000110;
-            4'd2: return 8'b01011011;
-            4'd3: return 8'b01001111;
-            4'd4: return 8'b01100110;
-            4'd5: return 8'b01101101;
-            4'd6: return 8'b01111101;
-            4'd7: return 8'b00000111;
-            4'd8: return 8'b01111111;
-            4'd9: return 8'b01101111;
-            default: return CHAR_BLANK;
+            4'd0: decode_bcd = 8'b00111111;
+            4'd1: decode_bcd = 8'b00000110;
+            4'd2: decode_bcd = 8'b01011011;
+            4'd3: decode_bcd = 8'b01001111;
+            4'd4: decode_bcd = 8'b01100110;
+            4'd5: decode_bcd = 8'b01101101;
+            4'd6: decode_bcd = 8'b01111101;
+            4'd7: decode_bcd = 8'b00000111;
+            4'd8: decode_bcd = 8'b01111111;
+            4'd9: decode_bcd = 8'b01101111;
+            default: decode_bcd = CHAR_BLANK;
         endcase
     endfunction
 
@@ -169,12 +169,14 @@ module display #(
                 ss6 = decode_bcd(current_row);
                 ss5 = CHAR_C;
                 ss4 = decode_bcd(current_col);
-                
-                // Lower 4 digits show current entry buffer
                 ss3 = decode_bcd(display_data[15:12]);
                 ss2 = decode_bcd(display_data[11:8]);
                 ss1 = decode_bcd(display_data[7:4]);
                 ss0 = decode_bcd(display_data[3:0]);
+            end
+            default: begin
+                ss7 = CHAR_BLANK; ss6 = CHAR_BLANK; ss5 = CHAR_BLANK; ss4 = CHAR_BLANK;
+                ss3 = CHAR_BLANK; ss2 = CHAR_BLANK; ss1 = CHAR_BLANK; ss0 = CHAR_BLANK;
             end
         endcase
     end
