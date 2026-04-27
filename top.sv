@@ -15,8 +15,6 @@ module top (
     input  logic        txready, rxready
 );
 
-    // Instantiate the Main FSM Controller
-    // Mapping the simulator's hardware clock (hz100) to the system clk
     main soc_controller (
         .clk(hz100),
         .reset(reset),
@@ -27,7 +25,6 @@ module top (
         .red(red), .green(green), .blue(blue)
     );
 
-    // Tie off unused UART outputs to prevent floating logic errors
     assign txdata = 8'd0;
     assign txclk  = 1'b0;
     assign rxclk  = 1'b0;

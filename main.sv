@@ -25,7 +25,7 @@ module main (
     logic [2:0]  sys_state, prompt_type;
     logic [3:0]  curr_r, curr_c;
     logic [31:0] display_data;
-    logic        error_flag, ready_flag;
+    logic error_flag, ready_flag;
 
     logic [3:0] m1_r, m1_c, m2_r, m2_c, out_r, out_c;
     logic [11:0] input_buf;
@@ -34,9 +34,7 @@ module main (
     logic [31:0] calc_i, calc_j, calc_k;
     logic [31:0] temp_rdata;
 
-    // --------------------------------------------------------
-    // MAC INFERENCE BREAKER
-    // --------------------------------------------------------
+    //multiply by dimension to avoid the yosys error
     function [31:0] mult_by_dim(input logic [31:0] val, input logic [31:0] dim);
         case(dim[3:0])
             4'd0: mult_by_dim = 32'd0;
@@ -71,9 +69,6 @@ module main (
     logic [31:0] size_limit_mult;
     assign size_limit_mult = mult_by_dim(32'(m1_r), 32'(m1_c));
 
-    // --------------------------------------------------------
-    // Sub-modules
-    // --------------------------------------------------------
     logic [20:0] pb_prev;
     always_ff @(posedge clk or posedge reset) begin
         if (reset) pb_prev <= '0;
@@ -111,9 +106,7 @@ module main (
         end
     end
 
-    // --------------------------------------------------------
-    // FSM (FULLY INTERLOCKED 4-PHASE HANDSHAKE)
-    // --------------------------------------------------------
+    //FSM definition
     typedef enum logic [5:0] {
         S_INIT, S_DIM_M1_COL, S_LOAD_M1, S_LOAD_M1_ACK, S_OP_SELECT,
         S_DIM_M2_COL, S_LOAD_M2, S_LOAD_M2_ACK, S_CALC_SETUP, 
@@ -232,10 +225,6 @@ module main (
 
                 S_CALC_SETUP: begin calc_i <= '0; calc_j <= '0; calc_k <= '0; state <= S_CALC_START; end
 
-                // -------------------------------------------------------------------
-                // MODULE HANDSHAKES: GUARANTEED ZERO DOUBLE-SAMPLING
-                // -------------------------------------------------------------------
-                
                 S_CALC_START: begin
                     sys_state <= 3'd3; 
                     if (op_type == 3'd1) prompt_type <= 3'd3; 
@@ -426,10 +415,6 @@ module main (
         end
     end
 
-    // --------------------------------------------------------
-    // SIMULATOR TERMINAL DEBUGGER
-    // --------------------------------------------------------
-    // synthesis translate_off
     logic [31:0] shadow_out [0:100]; 
     logic [5:0]  last_state; 
     initial begin last_state = 6'h3F; end
@@ -460,5 +445,4 @@ module main (
             $display("========================================\n");
         end
     end
-    // synthesis translate_on
 endmodule

@@ -12,7 +12,6 @@ module memory (
             mif.rdata <= '0;
             mif.ready <= 1'b0;
         end else begin
-            // Handshake logic: Assert ready for 1 cycle after valid read/write request
             if ((mif.wen || mif.ren) && !mif.ready) begin
                 if (mif.wen) begin
                     ram[mif.addr[8:0]] <= mif.wdata;
@@ -24,7 +23,6 @@ module memory (
                 
                 mif.ready <= 1'b1;
             end else begin
-                // De-assert ready once the request line drops or after 1 cycle
                 mif.ready <= 1'b0;
             end
         end

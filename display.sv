@@ -19,9 +19,6 @@ module display #(
     output logic        red, green, blue
 );
 
-    // --------------------------------------------------------
-    // 7-Segment Encoding Definitions (Active High)
-    // --------------------------------------------------------
     localparam [7:0] CHAR_BLANK = 8'b00000000;
     localparam [7:0] CHAR_R     = 8'b01010000; 
     localparam [7:0] CHAR_O     = 8'b00111111; 
@@ -34,7 +31,6 @@ module display #(
     localparam [7:0] CHAR_U     = 8'b00111110; 
     localparam [7:0] CHAR_T     = 8'b01111000; 
 
-    // Replaced 'return' with function name assignment for older Yosys compatibility
     function [7:0] decode_bcd(input logic [3:0] bcd);
         case (bcd)
             4'd0: decode_bcd = 8'b00111111;
@@ -51,9 +47,6 @@ module display #(
         endcase
     endfunction
 
-    // --------------------------------------------------------
-    // Blinking Timers (Driven by system clk)
-    // --------------------------------------------------------
     logic [31:0] tick_1hz;
     logic [31:0] tick_4hz;
     logic [31:0] tick_seq;
@@ -97,9 +90,7 @@ module display #(
         end
     end
 
-    // --------------------------------------------------------
-    // RGB LED Multiplexer
-    // --------------------------------------------------------
+    // mid RGB
     always_comb begin
         red   = 1'b0;
         green = 1'b0;
@@ -115,24 +106,16 @@ module display #(
         end
     end
 
-    // --------------------------------------------------------
-    // Left and Right LED arrays
-    // --------------------------------------------------------
     always_comb begin
         if (sys_state == 3'd3) begin 
-            // Processing Animation
             left  = (8'b00000001 << seq_counter);
             right = (8'b10000000 >> seq_counter);
         end else begin 
-            // Thermometer code based on current_row / col
             left  = (1 << current_row) - 1;
             right = (1 << current_col) - 1;
         end
     end
 
-    // --------------------------------------------------------
-    // 7-Segment Display Multiplexer
-    // --------------------------------------------------------
     always_comb begin
         // Default: blank all
         ss7 = CHAR_BLANK; ss6 = CHAR_BLANK; ss5 = CHAR_BLANK; ss4 = CHAR_BLANK;
