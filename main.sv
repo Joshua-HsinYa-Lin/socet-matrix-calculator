@@ -21,14 +21,17 @@ module main (
     matrix_if add_if(clk, ~reset);
     matrix_if vec_if(clk, ~reset);
     matrix_if tra_if(clk, ~reset);
+    matrix_if scalar_if(clk, ~reset);
 
-    logic [2:0]  sys_state, prompt_type;
+    logic [2:0]  sys_state;
+    logic [3:0]  prompt_type;
     logic [3:0]  curr_r, curr_c;
     logic [31:0] display_data;
     logic        error_flag, ready_flag;
 
     logic [3:0] m1_r, m1_c, m2_r, m2_c, out_r, out_c;
     logic [11:0] input_buf;
+    logic [31:0] scalar_value;
     logic [2:0] op_type; 
     
     logic [31:0] calc_i, calc_j, calc_k;
@@ -89,6 +92,9 @@ module main (
     logic [31:0] sum_out; logic sum_valid, sum_ready, add_done;
     matrix_add m_add(.clk(clk), .nRst(~reset), .mif(add_if.module_mp), .sum_out(sum_out), .sum_valid(sum_valid), .sum_ready(sum_ready), .operation_done(add_done));
 
+    logic [31:0] scalar_out; logic scalar_valid, scalar_ready, scalar_done;
+    matrix_scalar m_scalar(.clk(clk), .nRst(~reset), .mif(scalar_if.module_mp), .scalar(scalar_value), .scalar_out(scalar_out), .scalar_valid(scalar_valid), .scalar_ready(scalar_ready), .operation_done(scalar_done));
+
     logic [63:0] vec_product; logic vec_done;
     vector m_vec(.clk(clk), .nRST(~reset), .mif(vec_if.module_mp), .product(vec_product), .done(vec_done));
 
@@ -113,6 +119,7 @@ module main (
         S_INIT, S_DIM_M1_COL,
         S_LOAD_M1, S_LOAD_M1_ACK,
         S_OP_SELECT,
+        S_DIM_SCALAR,
         S_DIM_M2_COL, S_LOAD_M2, S_LOAD_M2_ACK,
         S_CALC_SETUP, S_CALC_START, S_CALC_START_ACK,
         S_CALC_FETCH_A, S_CALC_WAIT_A, S_CALC_PULSE_A,
@@ -127,8 +134,8 @@ module main (
         if (reset) begin
             state <= S_INIT; input_buf <= '0; error_flag <= 1'b0; ready_flag <= 1'b0;
             mem_bus.wen <= 1'b0; mem_bus.ren <= 1'b0;
-            add_if.valid <= 0; vec_if.valid <= 0; tra_if.valid <= 0;
-            sum_ready <= 0; trans_ready <= 0;
+            add_if.valid <= 0; vec_if.valid <= 0; tra_if.valid <= 0; scalar_if.valid <= 0;
+            sum_ready <= 0; trans_ready <= 0; scalar_ready <= 0;
         end else if (pb_pulse[KEY_X]) begin
             state <= S_INIT; input_buf <= '0; error_flag <= 1'b0; ready_flag <= 1'b0;
         end else begin
@@ -177,13 +184,29 @@ module main (
                     prompt_type <= 3'd0;
                     if (pb_pulse[KEY_A]) op_type <= 3'd1; 
                     if (pb_pulse[KEY_B]) op_type <= 3'd2; 
-                    if (pb_pulse[KEY_C]) op_type <= 3'd3; 
+                    if (pb_pulse[KEY_C]) op_type <= 3'd3;
+                    if (pb_pulse[KEY_D]) op_type <= 3'd4; 
 
                     if (pb_pulse[KEY_Y] && op_type != 0) begin
                         ready_flag <= 1'b0; curr_r <= 4'd1; curr_c <= 4'd1; input_buf <= '0;
                         if (op_type == 3'd1) begin m2_r <= m1_r; m2_c <= m1_c; out_r <= m1_r; out_c <= m1_c; state <= S_LOAD_M2; end 
                         else if (op_type == 3'd2) begin m2_r <= m1_c; out_r <= m1_r; state <= S_DIM_M2_COL; end 
-                        else begin out_r <= m1_c; out_c <= m1_r; state <= S_CALC_SETUP; end
+                        else if (op_type == 3'd3) begin out_r <= m1_c; out_c <= m1_r; state <= S_CALC_SETUP; end
+                        else begin out_r <= m1_r; out_c <= m1_c; state <= S_DIM_SCALAR; end
+                    end
+                end
+
+
+                S_DIM_SCALAR: begin
+                    // D mode: scalar multiplication. Enter a 1 to 3 digit scalar, use Z to shift, Y to confirm.
+                    sys_state <= 3'd2; prompt_type <= 4'd7; display_data <= {20'd0, input_buf};
+                    if (valid_num) input_buf[3:0] <= num_val;
+                    if (pb_pulse[KEY_Z]) input_buf <= {input_buf[7:0], 4'h0};
+                    if (pb_pulse[KEY_Y]) begin
+                        scalar_value <= {20'd0, input_buf};
+                        input_buf <= '0;
+                        error_flag <= 1'b0;
+                        state <= S_CALC_SETUP;
                     end
                 end
 
@@ -223,24 +246,26 @@ module main (
                     sys_state <= 3'd3; 
                     if (op_type == 3'd1) prompt_type <= 3'd3; 
                     else if (op_type == 3'd2) prompt_type <= 3'd4; 
-                    else prompt_type <= 3'd5; 
+                    else if (op_type == 3'd3) prompt_type <= 4'd5;
+                    else prompt_type <= 4'd7; 
 
-                    add_if.valid <= (op_type == 3'd1); vec_if.valid <= (op_type == 3'd2); tra_if.valid <= (op_type == 3'd3);
+                    add_if.valid <= (op_type == 3'd1); vec_if.valid <= (op_type == 3'd2); tra_if.valid <= (op_type == 3'd3); scalar_if.valid <= (op_type == 3'd4);
                     add_if.rsize <= {28'd0, m1_r}; add_if.csize <= {28'd0, m1_c};
                     vec_if.rsize <= {28'd0, m1_r}; vec_if.csize <= {28'd0, m1_c}; 
                     tra_if.rsize <= {28'd0, m1_r}; tra_if.csize <= {28'd0, m1_c};
+                    scalar_if.rsize <= {28'd0, m1_r}; scalar_if.csize <= {28'd0, m1_c};
                     state <= S_CALC_START_ACK;
                 end
 
                 S_CALC_START_ACK: begin
-                    add_if.valid <= 1'b0; vec_if.valid <= 1'b0; tra_if.valid <= 1'b0;
+                    add_if.valid <= 1'b0; vec_if.valid <= 1'b0; tra_if.valid <= 1'b0; scalar_if.valid <= 1'b0;
                     state <= S_CALC_FETCH_A;
                 end
 
                 S_CALC_FETCH_A: begin
-                    if ((op_type == 1 && add_if.ready) || (op_type == 2 && vec_if.ready) || (op_type == 3 && tra_if.ready)) begin
+                    if ((op_type == 1 && add_if.ready) || (op_type == 2 && vec_if.ready) || (op_type == 3 && tra_if.ready) || (op_type == 4 && scalar_if.ready)) begin
                         mem_bus.ren <= 1'b1;
-                        if (op_type == 1 || op_type == 3) mem_bus.addr <= BASE_M1 + calc_i;
+                        if (op_type == 1 || op_type == 3 || op_type == 4) mem_bus.addr <= BASE_M1 + calc_i;
                         else if (op_type == 2) mem_bus.addr <= BASE_M1 + calc_a_mult + calc_k;
                         state <= S_CALC_WAIT_A;
                     end
@@ -252,13 +277,14 @@ module main (
                         if (op_type == 1) begin add_if.data <= mem_bus.rdata; add_if.valid <= 1'b1; end
                         if (op_type == 2) begin vec_if.data <= mem_bus.rdata; vec_if.valid <= 1'b1; end
                         if (op_type == 3) begin tra_if.data <= mem_bus.rdata; tra_if.valid <= 1'b1; end
+                        if (op_type == 4) begin scalar_if.data <= mem_bus.rdata; scalar_if.valid <= 1'b1; end
                         state <= S_CALC_PULSE_A;
                     end
                 end
 
                 S_CALC_PULSE_A: begin
-                    add_if.valid <= 1'b0; vec_if.valid <= 1'b0; tra_if.valid <= 1'b0;
-                    if (op_type == 3) state <= S_CALC_WAIT_RES; 
+                    add_if.valid <= 1'b0; vec_if.valid <= 1'b0; tra_if.valid <= 1'b0; scalar_if.valid <= 1'b0;
+                    if (op_type == 3 || op_type == 4) state <= S_CALC_WAIT_RES; 
                     else state <= S_CALC_FETCH_B;
                 end
 
@@ -301,13 +327,17 @@ module main (
                         mem_bus.wdata <= trans_out; mem_bus.addr <= BASE_OUT + tra_res_mult + dest_cidx;
                         mem_bus.wen <= 1'b1; trans_ready <= 1'b1; state <= S_CALC_WRITE_RES;
                     end
+                    else if (op_type == 4 && scalar_valid) begin
+                        mem_bus.wdata <= scalar_out; mem_bus.addr <= BASE_OUT + calc_i;
+                        mem_bus.wen <= 1'b1; scalar_ready <= 1'b1; state <= S_CALC_WRITE_RES;
+                    end
                 end
 
                 S_CALC_WRITE_RES: begin
-                    sum_ready <= 1'b0; trans_ready <= 1'b0;
+                    sum_ready <= 1'b0; trans_ready <= 1'b0; scalar_ready <= 1'b0;
                     if (mem_bus.ready) begin
                         mem_bus.wen <= 1'b0;
-                        if (op_type == 1 || op_type == 3) begin
+                        if (op_type == 1 || op_type == 3 || op_type == 4) begin
                             if (calc_i + 32'd1 == size_limit_mult) state <= S_CALC_DONE_WAIT; 
                             else begin calc_i <= calc_i + 1; state <= S_CALC_FETCH_A; end
                         end
@@ -326,6 +356,7 @@ module main (
                 S_CALC_DONE_WAIT: begin
                     if (op_type == 1 && add_done) state <= S_OUT_IDLE_SETUP;
                     else if (op_type == 3 && tra_done) state <= S_OUT_IDLE_SETUP;
+                    else if (op_type == 4 && scalar_done) state <= S_OUT_IDLE_SETUP;
                     else if (op_type == 2) state <= S_OUT_IDLE_SETUP;
                 end
 
