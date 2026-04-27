@@ -1,24 +1,20 @@
-interface matrix_if(
-	input logic clk, 
-	input logic nRST
+interface matrix_if (
+    input logic clk,
+    input logic nRst
 );
-	logic valid;
-	logic ready;
-	logic wen;
-	logic ren;
-	logic [31:0] data;
-	logic [31:0] ridx;
-	logic [31:0] cidx;
-	logic [31:0] rsize;
-	logic [31:0] csize;
-	modport controller_mp (
-		input ready,
-		output valid, wen, ren, data, ridx, cidx, rsize, csize
-	);
+    logic        valid;
+    logic        ready;
+    logic [31:0] rsize;
+    logic [31:0] csize;
+    logic [31:0] data;
 
-	modport module_mp (
-        	input  valid, wen, ren, data, ridx, cidx, rsize, csize,
-        	output ready
-        );
+    modport controller_mp (
+        output valid, rsize, csize, data,
+        input  ready
+    );
 
+    modport module_mp (
+        input  valid, rsize, csize, data,
+        output ready
+    );
 endinterface
