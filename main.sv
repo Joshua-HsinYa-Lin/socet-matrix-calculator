@@ -7,34 +7,37 @@ module main (
     output logic [7:0]  left, right,
     output logic        red, green, blue
 );
+    //pressboard
+    localparam int KEY_W = 16, KEY_X = 17, KEY_Y = 18, KEY_Z = 19;
+    localparam int KEY_A = 10, KEY_B = 11, KEY_C = 12, KEY_D = 13, KEY_E = 14, KEY_F = 15;
+    logic [20:0] pb_pulse;
 
-    localparam int KEY_Y = 18, KEY_X = 17, KEY_Z = 19;
-    localparam int KEY_A = 10, KEY_B = 11, KEY_C = 12, KEY_D = 13;
-    localparam int KEY_W = 16, KEY_F = 15;
-
+    //virtual memory address
     localparam [31:0] BASE_M1  = 32'h000;
     localparam [31:0] BASE_M2  = 32'h080;
     localparam [31:0] BASE_OUT = 32'h100;
 
-    logic [20:0] pb_pulse;
     mem_if mem_bus(clk, ~reset);
     matrix_if add_if(clk, ~reset);
     matrix_if vec_if(clk, ~reset);
     matrix_if tra_if(clk, ~reset);
 
-    logic [2:0]  sys_state, prompt_type;
-    logic [3:0]  curr_r, curr_c;
+    //state tracking variable
+    logic [2:0] sys_state, prompt_type;
+    logic [3:0] curr_r, curr_c; //row / col
     logic [31:0] display_data;
     logic error_flag, ready_flag;
 
+    //matrix dimensions
     logic [3:0] m1_r, m1_c, m2_r, m2_c, out_r, out_c;
-    logic [11:0] input_buf;
-    logic [2:0] op_type; 
+    logic [11:0] input_buf; //current keypad
+    logic [2:0] op_type; //operation type
     
+    // loop control var
     logic [31:0] calc_i, calc_j, calc_k;
     logic [31:0] temp_rdata;
 
-    //multiply by dimension to avoid the yosys error
+    //multiplication by shifting to avoid the yosys error ($macc_v2 crashes)
     function [31:0] mult_by_dim(input logic [31:0] val, input logic [31:0] dim);
         case(dim[3:0])
             4'd0: mult_by_dim = 32'd0;
@@ -51,21 +54,24 @@ module main (
         endcase
     endfunction
 
+    // 0 indexed matrix
     logic [31:0] cr_minus_1, cc_minus_1;
     assign cr_minus_1 = 32'(curr_r) - 32'd1;
     assign cc_minus_1 = 32'(curr_c) - 32'd1;
 
+    //matrix boundaries
     logic [31:0] m1_offset_mult, m2_offset_mult, out_offset_mult;
     assign m1_offset_mult  = mult_by_dim(cr_minus_1, 32'(m1_c));
     assign m2_offset_mult  = mult_by_dim(cr_minus_1, 32'(m2_c));
     assign out_offset_mult = mult_by_dim(cr_minus_1, 32'(out_c));
 
+    //index pointer to current element
     logic [31:0] calc_a_mult, calc_b_mult, vec_res_mult, tra_res_mult;
     assign calc_a_mult  = mult_by_dim(calc_i, 32'(m1_c));
     assign calc_b_mult  = mult_by_dim(calc_k, 32'(m2_c));
     assign vec_res_mult = mult_by_dim(calc_i, 32'(out_c));
     assign tra_res_mult = mult_by_dim(dest_ridx, 32'(out_c));
-
+    //maximum element size
     logic [31:0] size_limit_mult;
     assign size_limit_mult = mult_by_dim(32'(m1_r), 32'(m1_c));
 
@@ -86,17 +92,20 @@ module main (
 
     memory sys_mem (.clk(clk), .nRst(~reset), .mif(mem_bus.memory_mp));
 
-    logic [31:0] sum_out; logic sum_valid, sum_ready, add_done;
+    logic [31:0] sum_out; 
+    logic sum_valid, sum_ready, add_done;
     matrix_add m_add(.clk(clk), .nRst(~reset), .mif(add_if.module_mp), .sum_out(sum_out), .sum_valid(sum_valid), .sum_ready(sum_ready), .operation_done(add_done));
 
-    logic [63:0] vec_product; logic vec_done;
+    logic [63:0] vec_product; 
+    logic vec_done;
     vector m_vec(.clk(clk), .nRST(~reset), .mif(vec_if.module_mp), .product(vec_product), .done(vec_done));
 
-    logic [31:0] trans_out, dest_ridx, dest_cidx; logic trans_valid, trans_ready, tra_done;
+    logic [31:0] trans_out, dest_ridx, dest_cidx; 
+    logic trans_valid, trans_ready, tra_done;
     matrix_transpose m_tra(.clk(clk), .nRst(~reset), .mif(tra_if.module_mp), .trans_out(trans_out), .dest_ridx(dest_ridx), .dest_cidx(dest_cidx), .trans_valid(trans_valid), .trans_ready(trans_ready), .operation_done(tra_done));
 
-    logic valid_num;
-    logic [3:0] num_val;
+    logic valid_num; //0-9 on keypad
+    logic [3:0] num_val; //what is pressed 0-19
     always_comb begin
         valid_num = 1'b0; num_val = 4'd0;
         for (int i = 0; i <= 9; i++) begin
@@ -106,19 +115,25 @@ module main (
         end
     end
 
-    //FSM definition
+    //FSM definition for main
     typedef enum logic [5:0] {
-        S_INIT, S_DIM_M1_COL, S_LOAD_M1, S_LOAD_M1_ACK, S_OP_SELECT,
+        S_INIT, //initialize
+        S_DIM_M1_COL, //waits for user to input
+        S_LOAD_M1, S_LOAD_M1_ACK, //load input
+        S_OP_SELECT, //select mode
         S_DIM_M2_COL, S_LOAD_M2, S_LOAD_M2_ACK, S_CALC_SETUP, 
         
+        // modules handshake
         S_CALC_START, S_CALC_START_WAIT_LOW, S_CALC_START_WAIT_HIGH,
         
+        // fetch and write to memory
         S_CALC_FETCH_A, S_CALC_WAIT_A, S_CALC_LATCH_A, 
         S_CALC_SEND_A, S_CALC_ACK_A_LOW, S_CALC_ACK_A_HIGH,
         
         S_CALC_FETCH_B, S_CALC_WAIT_B, S_CALC_LATCH_B, 
         S_CALC_SEND_B, S_CALC_ACK_B_LOW, S_CALC_ACK_B_HIGH,
         
+        // wait for calculation
         S_CALC_WAIT_RES, S_CALC_WRITE_RES, S_CALC_NEXT_WAIT_HIGH, S_CALC_DONE_WAIT,
         
         S_OUT_IDLE_SETUP, S_OUT_FETCH, S_OUT_FETCH_WAIT, S_OUT_FETCH_ACK, S_OUT_IDLE

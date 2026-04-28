@@ -4,7 +4,7 @@ module memory (
     mem_if.memory_mp mif
 );
 
-    // 512 words x 32-bit SRAM
+    // 512 words, 32-bit 
     logic [31:0] ram [0:511];
 
     always_ff @(posedge clk or negedge nRst) begin

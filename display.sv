@@ -1,5 +1,5 @@
 module display #(
-    parameter int CLK_FREQ = 100_000_000 // Adjust this to the board's actual clock frequency
+    parameter int CLK_FREQ = 100 // Adjust this to the board's actual clock frequency
 )(
     input  logic        clk,        // Main system clock
     input  logic        reset,      // Active-high reset

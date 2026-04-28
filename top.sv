@@ -25,8 +25,4 @@ module top (
         .red(red), .green(green), .blue(blue)
     );
 
-    assign txdata = 8'd0;
-    assign txclk  = 1'b0;
-    assign rxclk  = 1'b0;
-
 endmodule

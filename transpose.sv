@@ -1,3 +1,4 @@
+(* keep_hierarchy = 1 *)
 module matrix_transpose (
     input  logic        clk,
     input  logic        nRst,

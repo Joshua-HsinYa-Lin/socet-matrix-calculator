@@ -1,11 +1,12 @@
+(* keep_hierarchy = 1 *)
 module matrix_add (
-    input  logic        clk,
+    input  logic clk,
     input  logic        nRst,
     matrix_if.module_mp mif,
     output logic [31:0] sum_out,
-    output logic        sum_valid,
-    input  logic        sum_ready,
-    output logic        operation_done
+    output logic sum_valid,
+    input  logic sum_ready,
+    output logic operation_done
 );
     logic [31:0] reg_A, reg_B, element_counter, total_elements;
 
@@ -17,16 +18,20 @@ module matrix_add (
 
     always_ff @(posedge clk or negedge nRst) begin
         if (!nRst) begin
-            state           <= IDLE;
-            reg_A           <= '0; reg_B <= '0;
-            element_counter <= '0; total_elements <= '0;
-            mif.ready       <= 1'b0;
-            sum_out         <= '0; sum_valid <= 1'b0;
-            operation_done  <= 1'b0;
+            state <= IDLE;
+            reg_A <= '0; 
+            reg_B <= '0;
+            element_counter <= '0; 
+            total_elements <= '0;
+            mif.ready <= 1'b0;
+            sum_out <= '0; 
+            sum_valid <= 1'b0;
+            operation_done <= 1'b0;
         end else begin
             case (state)
                 IDLE: begin
-                    operation_done <= 1'b0; sum_valid <= 1'b0;
+                    operation_done <= 1'b0; 
+                    sum_valid <= 1'b0;
                     if (!mif.ready) begin
                         mif.ready <= 1'b1;
                     end else if (mif.valid) begin
@@ -39,7 +44,7 @@ module matrix_add (
 
                 FETCH_A: begin
                     if (!mif.ready) begin
-                        mif.ready <= 1'b1; // Forces a 1-cycle gap to prevent double-sampling
+                        mif.ready <= 1'b1;
                     end else if (mif.valid) begin
                         reg_A     <= mif.data;
                         mif.ready <= 1'b0;
@@ -49,7 +54,7 @@ module matrix_add (
 
                 FETCH_B: begin
                     if (!mif.ready) begin
-                        mif.ready <= 1'b1; // Forces a 1-cycle gap
+                        mif.ready <= 1'b1;
                     end else if (mif.valid) begin
                         reg_B     <= mif.data;
                         mif.ready <= 1'b0;
