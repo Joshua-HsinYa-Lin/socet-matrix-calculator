@@ -562,8 +562,8 @@ module main (
                         state <= S_OUT_FETCH; 
                     end
                     if (pb_pulse[KEY_D] && curr_c < out_c) begin 
-                        curr_c <= curr_c + 1; s
-                        tate <= S_OUT_FETCH; 
+                        curr_c <= curr_c + 1;
+                        state <= S_OUT_FETCH; 
                     end
                 end
 
@@ -572,36 +572,37 @@ module main (
         end
     end
 
-    logic [31:0] shadow_out [0:100]; 
+    logic [31:0] shadow_out [0:100];
     logic [5:0]  last_state; 
-    initial begin 
-        last_state = 6'h3F; 
-    end
 
-    always_ff @(posedge clk) begin
-        if (state != last_state) begin
-            last_state <= state;
-        end
-
-        if (valid_num) $display("[DEBUG] Typed Number: %0d", num_val);
-        
-        if (mem_bus.wen) begin
-            if (mem_bus.addr >= BASE_OUT) shadow_out[mem_bus.addr - BASE_OUT] = mem_bus.wdata;
-        end
-
-        if (state == S_OUT_IDLE_SETUP && last_state == S_CALC_DONE_WAIT) begin
-            $display("\n");
-            $display("COMPUTATION COMPLETE");
-            $display("        Resulting %0dx%0d Matrix:", out_r, out_c);
-            $display("\n");
-            for (int r = 0; r < out_r; r++) begin
-                $write("   ");
-                for (int c = 0; c < out_c; c++) begin
-                    $write("%0d\t", shadow_out[(r * out_c) + c]); 
-                end
-                $display(""); 
+    always_ff @(posedge clk or posedge reset) begin
+        if (reset) begin
+            last_state <= 6'h3F;
+        end else begin
+            if (state != last_state) begin
+                last_state <= state;
             end
-            $display("\n");
+
+            if (valid_num) $display("[DEBUG] Typed Number: %0d", num_val);
+            
+            if (mem_bus.wen) begin
+                if (mem_bus.addr >= BASE_OUT) shadow_out[mem_bus.addr - BASE_OUT] = mem_bus.wdata;
+            end
+
+            if (state == S_OUT_IDLE_SETUP && last_state == S_CALC_DONE_WAIT) begin
+                $display("\n");
+                $display("COMPUTATION COMPLETE");
+                $display("        Resulting %0dx%0d Matrix:", out_r, out_c);
+                $display("\n");
+                for (int r = 0; r < out_r; r++) begin
+                    $write("   ");
+                    for (int c = 0; c < out_c; c++) begin
+                        $write("%0d\t", shadow_out[(r * out_c) + c]);
+                    end
+                    $display("");
+                end
+                $display("\n");
+            end
         end
     end
 endmodule
