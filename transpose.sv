@@ -43,7 +43,7 @@ module matrix_transpose (
 
                 FETCH: begin
                     if (!mif.ready) begin
-                        mif.ready <= 1'b1; // Forces a 1-cycle gap
+                        mif.ready <= 1'b1;
                     end else if (mif.valid) begin
                         trans_out <= mif.data;
                         dest_ridx <= col_cnt;

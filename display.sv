@@ -1,5 +1,5 @@
 module display #(
-    parameter int CLK_FREQ = 100 // Adjust this to the board's actual clock frequency
+    parameter int CLK_FREQ = 100
 )(
     input  logic        clk,        // Main system clock
     input  logic        reset,      // Active-high reset
@@ -64,7 +64,6 @@ module display #(
             blink_4hz   <= 1'b0;
             seq_counter <= '0;
         end else begin
-            // 1 Hz blink (toggles every half second)
             if (tick_1hz >= (CLK_FREQ / 2) - 1) begin
                 tick_1hz  <= '0;
                 blink_1hz <= ~blink_1hz;
@@ -72,7 +71,6 @@ module display #(
                 tick_1hz <= tick_1hz + 1;
             end
 
-            // 4 Hz blink (toggles 8 times a second)
             if (tick_4hz >= (CLK_FREQ / 8) - 1) begin
                 tick_4hz  <= '0;
                 blink_4hz <= ~blink_4hz;
@@ -80,7 +78,6 @@ module display #(
                 tick_4hz <= tick_4hz + 1;
             end
 
-            // Sequence counter for LED animation (updates 10 times a second)
             if (tick_seq >= (CLK_FREQ / 10) - 1) begin
                 tick_seq    <= '0;
                 seq_counter <= seq_counter + 1;
@@ -96,7 +93,6 @@ module display #(
         green = 1'b0;
         blue  = 1'b0;
 
-        // Priority encoder for center RGB indicator
         if (error_flag) begin
             red = blink_1hz;              // Error: Slow blinking red
         end else if (ready_flag) begin

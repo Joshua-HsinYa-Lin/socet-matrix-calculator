@@ -143,23 +143,50 @@ module main (
 
     always_ff @(posedge clk or posedge reset) begin
         if (reset) begin
-            state <= S_INIT; input_buf <= '0; error_flag <= 1'b0; ready_flag <= 1'b0; op_type <= '0;
-            mem_bus.wen <= 1'b0; mem_bus.ren <= 1'b0; temp_rdata <= '0;
-            add_if.valid <= 0; vec_if.valid <= 0; tra_if.valid <= 0;
-            sum_ready <= 0; trans_ready <= 0;
-        end else if (pb_pulse[KEY_X] || pb_pulse[KEY_F]) begin // GLOBAL RESET
-            state <= S_INIT; input_buf <= '0; error_flag <= 1'b0; ready_flag <= 1'b0; op_type <= '0;
-            mem_bus.wen <= 1'b0; mem_bus.ren <= 1'b0; temp_rdata <= '0;
-            add_if.valid <= 0; vec_if.valid <= 0; tra_if.valid <= 0;
-            sum_ready <= 0; trans_ready <= 0;
+            state <= S_INIT; 
+            input_buf <= '0; 
+            error_flag <= 1'b0; 
+            ready_flag <= 1'b0; 
+            op_type <= '0;
+            mem_bus.wen <= 1'b0; 
+            mem_bus.ren <= 1'b0; 
+            temp_rdata <= '0;
+            add_if.valid <= 0; 
+            vec_if.valid <= 0; 
+            tra_if.valid <= 0;
+            sum_ready <= 0; 
+            trans_ready <= 0;
+        end else if (pb_pulse[KEY_X]) begin
+            state <= S_INIT; 
+            input_buf <= '0; 
+            error_flag <= 1'b0; 
+            ready_flag <= 1'b0; 
+            op_type <= '0;
+            mem_bus.wen <= 1'b0; 
+            mem_bus.ren <= 1'b0; 
+            temp_rdata <= '0;
+            add_if.valid <= 0; 
+            vec_if.valid <= 0; 
+            tra_if.valid <= 0;
+            sum_ready <= 0; 
+            trans_ready <= 0;
         end else begin
             case (state)
                 S_INIT: begin
-                    sys_state <= 3'd1; prompt_type <= 3'd1; mem_bus.wen <= 1'b0; mem_bus.ren <= 1'b0; display_data <= {20'd0, input_buf};
+                    sys_state <= 3'd1; 
+                    prompt_type <= 3'd1; 
+                    mem_bus.wen <= 1'b0; 
+                    mem_bus.ren <= 1'b0; 
+                    display_data <= {20'd0, input_buf};
                     if (valid_num) input_buf[3:0] <= num_val;
                     if (pb_pulse[KEY_Y]) begin
                         if (input_buf[3:0] == 0 || input_buf[3:0] > 9) error_flag <= 1'b1;
-                        else begin m1_r <= input_buf[3:0]; input_buf <= '0; error_flag <= 1'b0; state <= S_DIM_M1_COL; end
+                        else begin 
+                            m1_r <= input_buf[3:0]; 
+                            input_buf <= '0; 
+                            error_flag <= 1'b0; 
+                            state <= S_DIM_M1_COL; 
+                        end
                     end
                 end
 
@@ -168,31 +195,53 @@ module main (
                     if (valid_num) input_buf[3:0] <= num_val;
                     if (pb_pulse[KEY_Y]) begin
                         if (input_buf[3:0] == 0 || input_buf[3:0] > 9) error_flag <= 1'b1;
-                        else begin m1_c <= input_buf[3:0]; input_buf <= '0; error_flag <= 1'b0; curr_r <= 4'd1; curr_c <= 4'd1; state <= S_LOAD_M1; end
+                        else begin 
+                            m1_c <= input_buf[3:0]; 
+                            input_buf <= '0; 
+                            error_flag <= 1'b0; 
+                            curr_r <= 4'd1; 
+                            curr_c <= 4'd1; 
+                            state <= S_LOAD_M1; 
+                        end
                     end
                 end
 
                 S_LOAD_M1: begin
-                    sys_state <= 3'd2; prompt_type <= 3'd6; display_data <= {20'd0, input_buf};
+                    sys_state <= 3'd2; 
+                    prompt_type <= 3'd6; 
+                    display_data <= {20'd0, input_buf};
                     if (valid_num) input_buf[3:0] <= num_val;
                     if (pb_pulse[KEY_Z]) input_buf <= {input_buf[7:0], 4'h0};
                     if (pb_pulse[KEY_Y]) begin
                         mem_bus.addr  <= BASE_M1 + m1_offset_mult + cc_minus_1;
-                        mem_bus.wdata <= {20'd0, input_buf}; mem_bus.wen <= 1'b1; 
+                        mem_bus.wdata <= {20'd0, input_buf}; 
+                        mem_bus.wen <= 1'b1; 
                         state <= S_LOAD_M1_ACK;
                     end
                 end
 
                 S_LOAD_M1_ACK: begin
-                    mem_bus.wen <= 1'b0; input_buf <= '0;
+                    mem_bus.wen <= 1'b0; 
+                    input_buf <= '0;
                     if (curr_c == m1_c) begin
-                        if (curr_r == m1_r) begin ready_flag <= 1'b1; state <= S_OP_SELECT; end 
-                        else begin curr_r <= curr_r + 1; curr_c <= 4'd1; state <= S_LOAD_M1; end
-                    end else begin curr_c <= curr_c + 1; state <= S_LOAD_M1; end
+                        if (curr_r == m1_r) begin 
+                            ready_flag <= 1'b1; 
+                            state <= S_OP_SELECT; 
+                        end 
+                        else begin 
+                            curr_r <= curr_r + 1; 
+                            curr_c <= 4'd1; 
+                            state <= S_LOAD_M1; 
+                        end
+                    end else begin 
+                        curr_c <= curr_c + 1; 
+                        state <= S_LOAD_M1; 
+                    end
                 end
 
                 S_OP_SELECT: begin
-                    sys_state <= 3'd1; display_data <= '0;
+                    sys_state <= 3'd1; 
+                    display_data <= '0;
                     if (op_type == 3'd1) prompt_type <= 3'd3; 
                     else if (op_type == 3'd2) prompt_type <= 3'd4; 
                     else if (op_type == 3'd3) prompt_type <= 3'd5; 
@@ -203,10 +252,27 @@ module main (
                     if (pb_pulse[KEY_C]) op_type <= 3'd3; 
 
                     if (pb_pulse[KEY_Y] && op_type != 0) begin
-                        ready_flag <= 1'b0; curr_r <= 4'd1; curr_c <= 4'd1; input_buf <= '0;
-                        if (op_type == 3'd1) begin m2_r <= m1_r; m2_c <= m1_c; out_r <= m1_r; out_c <= m1_c; state <= S_LOAD_M2; end 
-                        else if (op_type == 3'd2) begin m2_r <= m1_c; out_r <= m1_r; state <= S_DIM_M2_COL; end 
-                        else begin out_r <= m1_c; out_c <= m1_r; state <= S_CALC_SETUP; end
+                        ready_flag <= 1'b0; 
+                        curr_r <= 4'd1; 
+                        curr_c <= 4'd1; 
+                        input_buf <= '0;
+                        if (op_type == 3'd1) begin 
+                            m2_r <= m1_r; 
+                            m2_c <= m1_c; 
+                            out_r <= m1_r; 
+                            out_c <= m1_c; 
+                            state <= S_LOAD_M2; 
+                        end 
+                        else if (op_type == 3'd2) begin 
+                            m2_r <= m1_c; 
+                            out_r <= m1_r; 
+                            state <= S_DIM_M2_COL; 
+                        end 
+                        else begin 
+                            out_r <= m1_c; 
+                            out_c <= m1_r; 
+                            state <= S_CALC_SETUP; 
+                        end
                     end
                 end
 
@@ -215,30 +281,57 @@ module main (
                     if (valid_num) input_buf[3:0] <= num_val;
                     if (pb_pulse[KEY_Y]) begin
                         if (input_buf[3:0] == 0 || input_buf[3:0] > 9) error_flag <= 1'b1;
-                        else begin m2_c <= input_buf[3:0]; out_c <= input_buf[3:0]; input_buf <= '0; error_flag <= 1'b0; curr_r <= 4'd1; curr_c <= 4'd1; state <= S_LOAD_M2; end
+                        else begin 
+                            m2_c <= input_buf[3:0]; 
+                            out_c <= input_buf[3:0]; 
+                            input_buf <= '0; 
+                            error_flag <= 1'b0; 
+                            curr_r <= 4'd1; 
+                            curr_c <= 4'd1; 
+                            state <= S_LOAD_M2; 
+                        end
                     end
                 end
 
                 S_LOAD_M2: begin
-                    sys_state <= 3'd2; prompt_type <= 3'd6; display_data <= {20'd0, input_buf};
+                    sys_state <= 3'd2; 
+                    prompt_type <= 3'd6; 
+                    display_data <= {20'd0, input_buf};
                     if (valid_num) input_buf[3:0] <= num_val;
                     if (pb_pulse[KEY_Z]) input_buf <= {input_buf[7:0], 4'h0};
                     if (pb_pulse[KEY_Y]) begin
                         mem_bus.addr <= BASE_M2 + m2_offset_mult + cc_minus_1;
-                        mem_bus.wdata <= {20'd0, input_buf}; mem_bus.wen <= 1'b1; 
+                        mem_bus.wdata <= {20'd0, input_buf}; 
+                        mem_bus.wen <= 1'b1; 
                         state <= S_LOAD_M2_ACK;
                     end
                 end
 
                 S_LOAD_M2_ACK: begin
-                    mem_bus.wen <= 1'b0; input_buf <= '0;
+                    mem_bus.wen <= 1'b0; 
+                    input_buf <= '0;
                     if (curr_c == m2_c) begin
-                        if (curr_r == m2_r) begin ready_flag <= 1'b1; state <= S_CALC_SETUP; end 
-                        else begin curr_r <= curr_r + 1; curr_c <= 4'd1; state <= S_LOAD_M2; end
-                    end else begin curr_c <= curr_c + 1; state <= S_LOAD_M2; end
+                        if (curr_r == m2_r) begin 
+                            ready_flag <= 1'b1; 
+                            state <= S_CALC_SETUP; 
+                        end 
+                        else begin 
+                            curr_r <= curr_r + 1; 
+                            curr_c <= 4'd1; 
+                            state <= S_LOAD_M2; 
+                        end
+                    end else begin 
+                        curr_c <= curr_c + 1; 
+                        state <= S_LOAD_M2; 
+                    end
                 end
 
-                S_CALC_SETUP: begin calc_i <= '0; calc_j <= '0; calc_k <= '0; state <= S_CALC_START; end
+                S_CALC_SETUP: begin 
+                    calc_i <= '0; 
+                    calc_j <= '0; 
+                    calc_k <= '0; 
+                    state <= S_CALC_START; 
+                end
 
                 S_CALC_START: begin
                     sys_state <= 3'd3; 
@@ -246,11 +339,13 @@ module main (
                     else if (op_type == 3'd2) prompt_type <= 3'd4; 
                     else prompt_type <= 3'd5; 
 
-                    add_if.rsize <= {28'd0, m1_r}; add_if.csize <= {28'd0, m1_c};
-                    vec_if.rsize <= {28'd0, m1_r}; vec_if.csize <= {28'd0, m1_c}; 
-                    tra_if.rsize <= {28'd0, m1_r}; tra_if.csize <= {28'd0, m1_c};
+                    add_if.rsize <= {28'd0, m1_r}; 
+                    add_if.csize <= {28'd0, m1_c};
+                    vec_if.rsize <= {28'd0, m1_r}; 
+                    vec_if.csize <= {28'd0, m1_c}; 
+                    tra_if.rsize <= {28'd0, m1_r}; 
+                    tra_if.csize <= {28'd0, m1_c};
                     
-                    // Phase 1: Assert valid to wake up
                     add_if.valid <= (op_type == 3'd1); 
                     vec_if.valid <= (op_type == 3'd2); 
                     tra_if.valid <= (op_type == 3'd3);
@@ -258,15 +353,15 @@ module main (
                 end
 
                 S_CALC_START_WAIT_LOW: begin
-                    // Phase 2: Hold valid until module pulls ready to 0
                     if ((op_type == 1 && !add_if.ready) || (op_type == 2 && !vec_if.ready) || (op_type == 3 && !tra_if.ready)) begin
-                        add_if.valid <= 1'b0; vec_if.valid <= 1'b0; tra_if.valid <= 1'b0;
+                        add_if.valid <= 1'b0; 
+                        vec_if.valid <= 1'b0; 
+                        tra_if.valid <= 1'b0;
                         state <= S_CALC_START_WAIT_HIGH;
                     end
                 end
 
                 S_CALC_START_WAIT_HIGH: begin
-                    // Phase 3: Wait for module to pull ready to 1 to proceed to Matrix A
                     if ((op_type == 1 && add_if.ready) || (op_type == 2 && vec_if.ready) || (op_type == 3 && tra_if.ready)) begin
                         state <= S_CALC_FETCH_A;
                     end
@@ -279,10 +374,13 @@ module main (
                     state <= S_CALC_WAIT_A;
                 end
 
-                S_CALC_WAIT_A: begin mem_bus.ren <= 1'b0; state <= S_CALC_LATCH_A; end
+                S_CALC_WAIT_A: begin 
+                    mem_bus.ren <= 1'b0; 
+                    state <= S_CALC_LATCH_A; 
+                end
                 
                 S_CALC_LATCH_A: begin
-                    temp_rdata <= mem_bus.rdata; // Prevent SRAM decay
+                    temp_rdata <= mem_bus.rdata;
                     state <= S_CALC_SEND_A;
                 end
 
@@ -298,16 +396,16 @@ module main (
                 end
 
                 S_CALC_ACK_A_LOW: begin
-                    // Hold data valid until module pulls ready to 0
                     if ((op_type == 1 && !add_if.ready) || (op_type == 2 && !vec_if.ready) || (op_type == 3 && !tra_if.ready)) begin
-                        add_if.valid <= 1'b0; vec_if.valid <= 1'b0; tra_if.valid <= 1'b0;
+                        add_if.valid <= 1'b0; 
+                        vec_if.valid <= 1'b0; 
+                        tra_if.valid <= 1'b0;
                         if (op_type == 3) state <= S_CALC_WAIT_RES; 
                         else state <= S_CALC_ACK_A_HIGH;
                     end
                 end
 
                 S_CALC_ACK_A_HIGH: begin
-                    // Wait for module to pull ready to 1 to proceed to Matrix B
                     if ((op_type == 1 && add_if.ready) || (op_type == 2 && vec_if.ready)) begin
                         state <= S_CALC_FETCH_B;
                     end
@@ -320,7 +418,10 @@ module main (
                     state <= S_CALC_WAIT_B;
                 end
 
-                S_CALC_WAIT_B: begin mem_bus.ren <= 1'b0; state <= S_CALC_LATCH_B; end
+                S_CALC_WAIT_B: begin 
+                    mem_bus.ren <= 1'b0; 
+                    state <= S_CALC_LATCH_B; 
+                end
                 
                 S_CALC_LATCH_B: begin
                     temp_rdata <= mem_bus.rdata; 
@@ -338,7 +439,8 @@ module main (
 
                 S_CALC_ACK_B_LOW: begin
                     if ((op_type == 1 && !add_if.ready) || (op_type == 2 && !vec_if.ready)) begin
-                        add_if.valid <= 1'b0; vec_if.valid <= 1'b0;
+                        add_if.valid <= 1'b0; 
+                        vec_if.valid <= 1'b0;
                         if (op_type == 2) begin
                             if (calc_k + 32'd1 == 32'(m1_c)) state <= S_CALC_WAIT_RES;
                             else state <= S_CALC_ACK_B_HIGH;
@@ -354,45 +456,62 @@ module main (
                 end
 
                 S_CALC_WAIT_RES: begin
+                    sum_ready <= 1'b1; 
+                    trans_ready <= 1'b1;
                     if (op_type == 1 && sum_valid) begin
                         sum_ready <= 1'b1; 
-                        mem_bus.wdata <= sum_out; mem_bus.addr <= BASE_OUT + calc_i;
-                        mem_bus.wen <= 1'b1; state <= S_CALC_WRITE_RES;
+                        mem_bus.wdata <= sum_out; 
+                        mem_bus.addr <= BASE_OUT + calc_i;
+                        mem_bus.wen <= 1'b1; 
+                        state <= S_CALC_WRITE_RES;
                     end
                     else if (op_type == 2 && vec_done) begin
-                        mem_bus.wdata <= vec_product[31:0]; mem_bus.addr <= BASE_OUT + vec_res_mult + calc_j;
-                        mem_bus.wen <= 1'b1; state <= S_CALC_WRITE_RES;
+                        mem_bus.wdata <= vec_product[31:0]; 
+                        mem_bus.addr <= BASE_OUT + vec_res_mult + calc_j;
+                        mem_bus.wen <= 1'b1; 
+                        state <= S_CALC_WRITE_RES;
                     end
                     else if (op_type == 3 && trans_valid) begin
                         trans_ready <= 1'b1;
-                        mem_bus.wdata <= trans_out; mem_bus.addr <= BASE_OUT + tra_res_mult + dest_cidx;
-                        mem_bus.wen <= 1'b1; state <= S_CALC_WRITE_RES;
+                        mem_bus.wdata <= trans_out; 
+                        mem_bus.addr <= BASE_OUT + tra_res_mult + dest_cidx;
+                        mem_bus.wen <= 1'b1; 
+                        state <= S_CALC_WRITE_RES;
                     end
                 end
 
                 S_CALC_WRITE_RES: begin
-                    // Safely drop ready only after the module officially drops valid
                     if ((op_type == 1 && !sum_valid) || (op_type == 3 && !trans_valid) || (op_type == 2)) begin
-                        sum_ready <= 1'b0; trans_ready <= 1'b0; mem_bus.wen <= 1'b0; 
+                        sum_ready <= 1'b0; 
+                        trans_ready <= 1'b0; 
+                        mem_bus.wen <= 1'b0; 
                         
                         if (op_type == 1 || op_type == 3) begin
                             if (calc_i + 32'd1 == size_limit_mult) state <= S_CALC_DONE_WAIT; 
-                            else begin calc_i <= calc_i + 1; state <= S_CALC_NEXT_WAIT_HIGH; end
+                            else begin 
+                                calc_i <= calc_i + 1; 
+                                state <= S_CALC_NEXT_WAIT_HIGH; 
+                            end
                         end
                         else if (op_type == 2) begin
                             if (calc_j + 32'd1 == 32'(m2_c)) begin
                                 calc_j <= 0;
                                 if (calc_i + 32'd1 == 32'(m1_r)) state <= S_CALC_DONE_WAIT;
-                                else begin calc_i <= calc_i + 1; calc_k <= 0; state <= S_CALC_START; end
+                                else begin 
+                                    calc_i <= calc_i + 1; 
+                                    calc_k <= 0; 
+                                    state <= S_CALC_START; 
+                                end
                             end else begin
-                                calc_j <= calc_j + 1; calc_k <= 0; state <= S_CALC_START;
+                                calc_j <= calc_j + 1; 
+                                calc_k <= 0; 
+                                state <= S_CALC_START;
                             end
                         end
                     end
                 end
 
                 S_CALC_NEXT_WAIT_HIGH: begin
-                    // Guarantee module is ready before fetching next Matrix A component
                     if ((op_type == 1 && add_if.ready) || (op_type == 3 && tra_if.ready)) begin
                         state <= S_CALC_FETCH_A;
                     end
@@ -404,25 +523,48 @@ module main (
                     end
                 end
 
-                S_OUT_IDLE_SETUP: begin curr_r <= 4'd1; curr_c <= 4'd1; state <= S_OUT_FETCH; end
+                S_OUT_IDLE_SETUP: begin 
+                    curr_r <= 4'd1; 
+                    curr_c <= 4'd1; 
+                    state <= S_OUT_FETCH; 
+                end
 
                 S_OUT_FETCH: begin
-                    sys_state <= 3'd2; prompt_type <= 3'd6; // Coordinate + Data Display
+                    sys_state <= 3'd2; 
+                    prompt_type <= 3'd6;
                     mem_bus.addr <= BASE_OUT + out_offset_mult + cc_minus_1;
                     mem_bus.ren  <= 1'b1; 
                     state <= S_OUT_FETCH_WAIT;
                 end
 
-                S_OUT_FETCH_WAIT: begin mem_bus.ren <= 1'b0; state <= S_OUT_FETCH_ACK; end
+                S_OUT_FETCH_WAIT: begin 
+                    mem_bus.ren <= 1'b0; 
+                    state <= S_OUT_FETCH_ACK; 
+                end
 
-                S_OUT_FETCH_ACK: begin display_data <= mem_bus.rdata; state <= S_OUT_IDLE; end
+                S_OUT_FETCH_ACK: begin 
+                    display_data <= mem_bus.rdata; 
+                    state <= S_OUT_IDLE; 
+                end
 
                 S_OUT_IDLE: begin
                     sys_state <= 3'd2; prompt_type <= 3'd6;
-                    if (pb_pulse[KEY_W] && curr_r > 1)     begin curr_r <= curr_r - 1; state <= S_OUT_FETCH; end
-                    if (pb_pulse[KEY_B] && curr_r < out_r) begin curr_r <= curr_r + 1; state <= S_OUT_FETCH; end
-                    if (pb_pulse[KEY_A] && curr_c > 1)     begin curr_c <= curr_c - 1; state <= S_OUT_FETCH; end
-                    if (pb_pulse[KEY_D] && curr_c < out_c) begin curr_c <= curr_c + 1; state <= S_OUT_FETCH; end
+                    if (pb_pulse[KEY_W] && curr_r > 1)     begin 
+                        curr_r <= curr_r - 1; 
+                        state <= S_OUT_FETCH; 
+                    end
+                    if (pb_pulse[KEY_B] && curr_r < out_r) begin 
+                        curr_r <= curr_r + 1; 
+                        state <= S_OUT_FETCH; 
+                    end
+                    if (pb_pulse[KEY_A] && curr_c > 1)     begin 
+                        curr_c <= curr_c - 1; 
+                        state <= S_OUT_FETCH; 
+                    end
+                    if (pb_pulse[KEY_D] && curr_c < out_c) begin 
+                        curr_c <= curr_c + 1; s
+                        tate <= S_OUT_FETCH; 
+                    end
                 end
 
                 default: state <= S_INIT;
@@ -432,7 +574,9 @@ module main (
 
     logic [31:0] shadow_out [0:100]; 
     logic [5:0]  last_state; 
-    initial begin last_state = 6'h3F; end
+    initial begin 
+        last_state = 6'h3F; 
+    end
 
     always_ff @(posedge clk) begin
         if (state != last_state) begin
@@ -446,10 +590,10 @@ module main (
         end
 
         if (state == S_OUT_IDLE_SETUP && last_state == S_CALC_DONE_WAIT) begin
-            $display("\n========================================");
-            $display("      >>> COMPUTATION COMPLETE <<<");
+            $display("\n");
+            $display("COMPUTATION COMPLETE");
             $display("        Resulting %0dx%0d Matrix:", out_r, out_c);
-            $display("========================================");
+            $display("\n");
             for (int r = 0; r < out_r; r++) begin
                 $write("   ");
                 for (int c = 0; c < out_c; c++) begin
@@ -457,7 +601,7 @@ module main (
                 end
                 $display(""); 
             end
-            $display("========================================\n");
+            $display("\n");
         end
     end
 endmodule
