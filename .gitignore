@@ -1,5 +1,5 @@
 happy*
 ~$*
 work/
-.vcd
-.tcl
+*.vcd
+*.tcl
