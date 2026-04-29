@@ -1,6 +1,6 @@
 # FPGA Matrix Calculator User Guide
 
-This document outlines the user interface and operational flow for the hardware-based Matrix Calculator, designed for an FPGA simulator (such as ECE270). The system supports up to 9x9 matrix addition, multiplication, and transposition using a 4x5 keypad, 7-segment displays, and indicator LEDs.
+This document outlines the user interface and operational flow for the hardware-based Matrix Calculator, designed for an FPGA simulator (such as ECE270). The system supports up to 9x9 matrix addition, multiplication, transposition, and scalar multiplication using a 4x5 keypad, 7-segment displays, and indicator LEDs.
 
 ## 1. Hardware Interface Overview
 
@@ -48,6 +48,7 @@ This document outlines the user interface and operational flow for the hardware-
     * Press **A** for Addition.
     * Press **B** for Multiplication.
     * Press **C** for Transposition.
+    * Press **D** for Scalar Multiplication.
 2. Press **Y** to confirm.
 
 ### Step 4: Entering Matrix 2 (If Applicable)
@@ -55,10 +56,11 @@ Depending on the chosen operation, the system will prompt for Matrix 2 parameter
 * **Addition:** The dimensions are fixed to match Matrix 1. The system immediately prompts for Matrix 2 elements (`ROW1COL1`). Follow the Step 2 procedure.
 * **Multiplication:** The Matrix 2 row size is fixed to match Matrix 1's column size. The display will prompt `COL` for Matrix 2's column size. Enter it, press **Y**, then enter elements following Step 2.
 * **Transposition:** No second matrix is required. The system immediately advances to computation.
+* **Scalar Multiplication:** The display prompts `SCL`. Enter a scalar value using the same element-entry method. Example for 12: press `1`, `Z`, `2`, then `Y`. The output matrix has the same dimensions as Matrix 1.
 
 ### Step 5: Processing Calculation
 1. The Left and Right LEDs will blink in sequence.
-2. The display will show the operation code (`ADD`, `MUL`, `TRA`) for a minimum of 1 second.
+2. The display will show the operation code (`ADD`, `MUL`, `TRA`, or `SCL`) for a minimum of 1 second.
 
 ### Step 6: Viewing Outputs
 1. **Default View:** Displays the element at Row 1, Col 1. The Left and Right LEDs show the current 0-based Row and Column indices.
