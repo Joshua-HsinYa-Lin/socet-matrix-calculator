@@ -14,7 +14,6 @@ module tb_memory ();
 
     always #5 clk = ~clk;
 
-    // Standardized Write Task
     task write_mem(input logic [31:0] target_addr, input logic [31:0] data);
         mif.addr  = target_addr;
         mif.wdata = data;
@@ -28,7 +27,6 @@ module tb_memory ();
         @(posedge clk);
     endtask
 
-    // Standardized Read Task
     task read_mem(input logic [31:0] target_addr, output logic [31:0] data);
         mif.addr = target_addr;
         mif.ren  = 1'b1;
@@ -58,14 +56,11 @@ module tb_memory ();
 
         $display("Starting Memory Handshake Tests...");
 
-        // Write Test Matrix 1 Data (Base 0x000)
         write_mem(32'h0000_0000, 32'd125);
         write_mem(32'h0000_0001, 32'd999);
 
-        // Write Test Result Data (Base 0x100 = 256)
         write_mem(32'h0000_0100, 32'd4096);
 
-        // Verify Data Integrity
         read_mem(32'h0000_0000, read_val);
         if (read_val !== 32'd125) $display("[FAIL] Addr 0x000: Expected 125, Got %0d", read_val);
         else $display("[PASS] Addr 0x000 read matched.");

@@ -18,15 +18,12 @@ module tb_vector();
     always #5 clk = ~clk;
 
     task automatic send_word(input logic [31:0] word);
-        // Wait for hardware to declare it is ready on the posedge
         while (!mif.ready) @(posedge clk);
         
-        // Drive data safely on the falling edge to prevent race conditions
         @(negedge clk);
         mif.data = word;
         mif.valid = 1'b1;
         
-        // Hold for one full clock cycle, then drop on the next falling edge
         @(negedge clk);
         mif.valid = 1'b0;
         mif.data = '0;
